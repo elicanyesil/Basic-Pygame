@@ -1,0 +1,222 @@
+import pygame
+import sys
+import random
+
+#Yapılıcaklar size buyutme power up
+#Inverse controls power up
+
+
+
+
+pygame.init() #initializing pygame
+game_over = False
+
+#Game clock
+clock = pygame.time.Clock()
+
+
+#Scores
+score = 0
+top10Scores = []
+
+
+#Background
+WIDTH = 800
+HEIGHT = 600
+BackgroundColor = (0,0,0)
+
+#Player 
+ArmyGreen = (71,96,66)
+player_size = 50
+player_pos_x = WIDTH/2
+player_pos_y = HEIGHT-2*player_size
+
+
+#Enemy
+LightBlue = (0, 169, 254)
+enemy_size = 50 #biri 50 biri değişken olacak
+enemy_pos_x = random.randint(10, WIDTH - enemy_size - 10)
+enemy_pos_y = HEIGHT/30
+enemy_pos = [enemy_pos_x, enemy_pos_y]
+enemy_list=[enemy_pos]
+enemy_speed = 5 
+
+#Dificulty
+enemy_count = 10
+
+
+
+
+def icrease_Difficulty(score, speed):
+	if (score%250 == 0):
+		if speed >= 6 :
+			speed = enemy_speed+0.5
+		if speed <6 :
+			speed = enemy_speed+1
+			
+	return speed	
+
+
+def increase_Score(Score):
+
+	if Score < 250:
+		Score = Score+1
+	elif 150 <= Score < 750:
+		Score += 2
+	elif Score >= 750:
+		Score += 5
+	elif Score == 9995:
+		Score = 9999	
+	return Score	
+		
+
+def create_enemies(enemy_list):
+	delay = random.random()
+	if ( len(enemy_list) <enemy_count and delay < 0.2 ):
+		x = random.randint(10, WIDTH - enemy_size - 10)
+		y = HEIGHT/30
+		enemy_list.append([x, y])
+
+def draw_enimies(enemy_list):
+	for enemy_pos in enemy_list:
+		pygame.draw.rect(screen, LightBlue, (enemy_pos[0], enemy_pos[1], enemy_size, enemy_size) )
+
+def enemy_movement(enemy_list):
+	for index, enemy_pos in enumerate(enemy_list):
+		if 0<= enemy_pos[1] < HEIGHT:
+			enemy_pos[1] += enemy_speed		
+		else:
+			enemy_list.pop(index)
+
+def collision_check(enemy_list):
+	for enemy_pos in enemy_list:
+		if detect_collision(player_pos_x, player_pos_y, player_size, enemy_pos[0], enemy_pos[1], enemy_size) == True:
+			return True
+	return	False 
+
+
+def detect_collision(player_pos_x, player_pos_y, player_size, enemy_pos_x, enemy_pos_y, enemy_size):
+	
+	if(( (player_pos_x <= enemy_pos_x <= player_pos_x+player_size) or (player_pos_x<= enemy_pos_x+enemy_size<= player_pos_x+player_size) ) and ((player_pos_y<= enemy_pos_y<= player_pos_y+player_size) or (player_pos_y<= enemy_pos_y+enemy_size<= player_pos_y+player_size))):		
+		return True
+	else: 
+		return False
+
+
+def readhighScores():
+	readScores = []
+	f = open("scores.txt", "r+")
+	f1 = f.readlines()
+
+	for x in f1: 
+		readScores.append(x.rstrip('\n'))
+	print ("highScores array length: "+str(len(readScores)))	
+
+	if len(readScores) < 10:
+		for i in range (10 - len(readScores)):
+			readScores.append(0)
+	f.close()
+	return readScores
+
+	
+def compareScores(top10Scores, score):
+	array = top10Scores
+	for count, values in enumerate(array):
+		if (int(values) <= score) :
+			array.insert(count,str(score))
+			break
+
+	while ( len(array) > 10 ):
+		array.pop()
+	print("-Array Elements-")			
+	for x in array:
+		print(x)
+
+	return array
+
+def writeHighScore(top10Scores):
+	f = open("scores.txt", "w+")
+	for x in top10Scores:
+		f.write(str(x) +"\n")
+	f.close()
+
+def printTopScores(top10Scores):
+	space = 530
+
+	#Title
+	label = titleFont.render("TOP SCORES OF ALL TIME", 1, (250,250,250))
+	screen.blit(label, (WIDTH-570, HEIGHT-space-50))
+
+	#High Scores
+	for i, values in enumerate(top10Scores):
+		label = scoreFont.render("Top Score " + str(i+1) +": "+ top10Scores[i], 1, (250,250,250))
+		screen.blit(label, (WIDTH-760, HEIGHT-space))
+		space -= 50
+
+screen = pygame.display.set_mode((WIDTH,HEIGHT))
+scoreFont = pygame.font.SysFont("monospace", 25)
+titleFont = pygame.font.SysFont("monospace", 30)
+
+while not game_over:
+	for event in pygame.event.get():
+		print(event)
+
+		if event.type == pygame.QUIT:
+			sys.exit()
+
+		#Player movement
+		if event.type == pygame.KEYDOWN:
+			if (event.key == pygame.K_LEFT and player_pos_x > 0):
+				player_pos_x -= player_size/3.33
+
+			elif (event.key == pygame.K_RIGHT and player_pos_x < 750):
+				player_pos_x += player_size/3.33
+
+			elif event.key == pygame.K_UP:
+				player_pos_y -= player_size/3.33
+
+			elif event.key == pygame.K_DOWN:
+				player_pos_y += player_size/3.33	
+
+	
+
+	screen.fill(BackgroundColor)
+	label = scoreFont.render("Score:"+ str(score), 1, (250,250,250))
+	screen.blit(label, (WIDTH-220, HEIGHT-40))
+
+	create_enemies(enemy_list)
+
+	if collision_check(enemy_list) == True:
+		top10Scores = readhighScores()
+		top10Scores = compareScores(top10Scores,score)
+		writeHighScore(top10Scores)
+		game_over = True
+
+	
+	score = increase_Score(score)
+	enemy_speed = icrease_Difficulty(score, enemy_speed) 
+	draw_enimies(enemy_list)
+	enemy_movement(enemy_list)
+	
+	pygame.draw.rect(screen, ArmyGreen, (player_pos_x, player_pos_y, player_size, player_size) )
+	clock.tick(30)
+	pygame.display.update()
+
+while game_over is True:
+	for event in pygame.event.get():
+
+		if event.type == pygame.QUIT:
+			sys.exit()
+		if event.type == pygame.KEYDOWN:
+
+			#Game exit key
+			if event.key == pygame.K_ESCAPE:
+				sys.exit()
+			
+					
+
+	#print high scores
+
+	screen.fill(BackgroundColor)
+	printTopScores(top10Scores)
+	pygame.display.update()
